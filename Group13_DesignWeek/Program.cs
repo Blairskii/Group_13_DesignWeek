@@ -169,6 +169,9 @@ namespace Group13_DesignWeek
 
         // Room 3... one lever is the correct one
         public (int x, int y)? CorrectLeverPos = null;
+
+        // NEW: discovered legend entries (progressive legend)
+        public Dictionary<char, string> DiscoveredLegend = new();
     }
 
 
@@ -178,7 +181,7 @@ namespace Group13_DesignWeek
     {
         static void Main()
         {
-            Console.Title = "Escaped Alien... Area 51";
+            Console.Title = "Alienation";
             TryResizeConsole(120, 40); // try to make more room... ignored if OS denies
 
             var world = BuildWorld();
@@ -238,25 +241,18 @@ namespace Group13_DesignWeek
             Console.Clear();
             var room = world.CurrentRoom;
 
-            // Legend text... keep short so we can center map + legend block
-            string[] legend =
-            {
-                "LEGEND",
-                "P  Player",
-                "#  Wall",
-                "D  Door",
-                "/  Door open",
-                "E  Exit",
-                "*  Plate",
-                "1/2/3 Shapes",
-                "O  Flavor",
-                "  Interact",
-                "",
-                "Controls",
-                "WASD Move",
-                "E    Interact",
-                "Q    Quit"
-            };
+            // Build progressive legend: only show discovered entries
+            var legendList = new List<string>();
+            legendList.Add("LEGEND");
+            foreach (var kv in world.DiscoveredLegend)
+                legendList.Add($"{kv.Key}  {kv.Value}");
+            legendList.Add("");
+            legendList.Add("Controls");
+            legendList.Add("WASD Move");
+            legendList.Add("E    Interact");
+            legendList.Add("Q    Quit");
+
+            string[] legend = legendList.ToArray();
 
             // print each map row plus an optional legend row
             //  approximate total width to center the whole block
@@ -349,12 +345,22 @@ namespace Group13_DesignWeek
             var room = world.CurrentRoom;
             var pos = world.PlayerPos;
 
+            // helper to register a legend entry once
+            static void Learn(World w, char ch, string label)
+            {
+                if (!w.DiscoveredLegend.ContainsKey(ch))
+                    w.DiscoveredLegend[ch] = label;
+            }
+
             // 1) Doors... unlock from an adjacent cell with E
             foreach (var dir in new (int dx, int dy)[] { (0, -1), (0, 1), (-1, 0), (1, 0) })
             {
                 var neighbor = (pos.x + dir.dx, pos.y + dir.dy);
                 if (room.Doors.Contains(neighbor))
                 {
+                    // discovered... door
+                    Learn(world, 'D', "Door");
+
                     bool open = world.OpenDoors.Contains((room, neighbor));
                     Console.WriteLine();
                     if (!open && world.CurrentRoomIndex == 1 && world.HasKeyRoom2)
@@ -383,6 +389,9 @@ namespace Group13_DesignWeek
             // 2) Flavor... narrative objects
             if (room.Flavors.Contains(pos))
             {
+                // discovered... flavor object
+                Learn(world, 'O', "Flavor");
+
                 Console.WriteLine();
                 Console.WriteLine("A human artifact... you see symbols that match your species code...");
                 PauseBrief();
@@ -394,6 +403,9 @@ namespace Group13_DesignWeek
             // 3) Room 2... search items... one contains the key
             if (world.CurrentRoomIndex == 1 && room.Searchables.Contains(pos))
             {
+                // discovered... interactable (lockers/items/levers render as T)
+                Learn(world, 'T', "Interact");
+
                 var correct = world.FixedKeyItemPos ??
                               room.Searchables.OrderBy(p => Math.Abs(p.x - room.Width / 2)
                                                          + Math.Abs(p.y - room.Height / 2)).First();
@@ -420,6 +432,9 @@ namespace Group13_DesignWeek
             // 4) Room 3... pull a lever
             if (world.CurrentRoomIndex == 2 && room.Levers.Contains(pos))
             {
+                // discovered... interactable (levers render as T)
+                Learn(world, 'T', "Interact");
+
                 if (world.CorrectLeverPos == null)
                 {
                     // Deterministic pick so it is consistent across runs... topmost... then leftmost
@@ -448,6 +463,9 @@ namespace Group13_DesignWeek
             // 5) Hint on plate in room 1
             if (room.Plates.Contains(pos) && world.CurrentRoomIndex == 0)
             {
+                // discovered... plate
+                Learn(world, '*', "Plate");
+
                 Console.WriteLine();
                 Console.WriteLine("A heavy pressure plate... perhaps the right shape will trigger it...");
                 PauseBrief();
@@ -459,6 +477,9 @@ namespace Group13_DesignWeek
             // 6) Exit tile... try to advance
             if (room.ExitPos.HasValue && pos == room.ExitPos.Value)
             {
+                // discovered... exit
+                Learn(world, 'E', "Exit");
+
                 TryAdvanceIfOnExit(world);
                 return;
             }
@@ -614,8 +635,6 @@ namespace Group13_DesignWeek
 
             // Room 1 correct shape
             world.CorrectShapeForPlate = ShapeId.Two;
-
-
 
             return world;
         }
