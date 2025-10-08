@@ -1,31 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Group13_DesignWeek
+﻿class World
 {
-    // world... cross room state
-    class World
-    {
-        public List<Room> Rooms = new();
-        public int CurrentRoomIndex = 0;
-        public Room CurrentRoom => Rooms[CurrentRoomIndex];
+    public System.Collections.Generic.List<Room> Rooms = new();
+    public int CurrentRoomIndex = 0;
+    public Room CurrentRoom => Rooms[CurrentRoomIndex];
 
-        public (int x, int y) PlayerPos;
+    public (int x, int y) PlayerPos;
 
-        public HashSet<(Room room, (int x, int y) door)> OpenDoors = new();
+    public System.Collections.Generic.HashSet<(Room room, (int x, int y) door)> OpenDoors = new();
 
-        // room 1
-        public ShapeId CorrectShapeForPlate = ShapeId.Two;
+    // room 1
+    public ShapeId CorrectShapeForPlate = ShapeId.Two; // keep if you still use 1/2/3 elsewhere
 
-        // room 2
-        public bool HasKeyRoom2 = false;
-        public (int x, int y)? FixedKeyItemPos = null;
+    // room 2
+    public bool HasKeyRoom2 = false;
+    public (int x, int y)? FixedKeyItemPos = null;
 
-        // room 3... lever flow
-        public HashSet<(int x, int y)> PulledLevers = new();
-        public int NextDoorIndexRoom3 = 0; // which door to open next
+    // room 3
+    public System.Collections.Generic.HashSet<(int x, int y)> PulledLevers = new();
+    public int NextDoorIndexRoom3 = 0;
 
-        // progressive legend
-        public Dictionary<char, string> DiscoveredLegend = new();
-    }
+    // progressive legend
+    public System.Collections.Generic.Dictionary<char, string> DiscoveredLegend = new();
 }
