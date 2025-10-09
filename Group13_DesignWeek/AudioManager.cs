@@ -6,14 +6,7 @@ using System.Media;
 
 namespace Group13_DesignWeek
 {
-    /// <summary>
-    /// Lightweight audio helper for loops and one-shots.
-    /// Uses System.Media.SoundPlayer... keep WAVs PCM/uncompressed for fastest load.
-    /// Call Audio.Init(baseFolder) once at startup.
-    /// Then call the small verbs from your gameplay code, eg:
-    ///   Audio.PlayDoorOpen();
-    ///   Audio.PlayFlavorSfx(room, playerPos);
-    /// </summary>
+   
     static class Audio
     {
         // central registry of loaded players keyed by a short name
@@ -38,9 +31,7 @@ namespace Group13_DesignWeek
             { "door",        "Metal Door.wav" },    // doors... lockers... heavy metal
             { "portal",      "Portal.wav" },        // glyph '0'
 
-            // bg examples... optional... add your own
-            // { "bg_level1", "Bg_L1.wav" },
-            // { "bg_level2", "Bg_L2.wav" },
+           
         };
 
         /// <summary>Point the audio system at your WAV folder and prewarm the common sounds.</summary>

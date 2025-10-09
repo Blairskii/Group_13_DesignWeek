@@ -168,6 +168,11 @@ namespace Group13_DesignWeek
                 {
                     switch (g)
                     {
+                        
+                        case 'C':
+                            Learn(world, 'C', "Concealment Cube");
+                            Console.WriteLine("A concealment cube, primitives...");
+                            break;
                         case 'h':
                             Learn(world, 'h', "Sleepy");
                             Console.WriteLine("A thin sleeping creature with a thousand tiny legs...");
@@ -196,7 +201,7 @@ namespace Group13_DesignWeek
                 }
                 else
                 {
-                    Console.WriteLine("Something unfamiliar... it hums softly...");
+                    Console.WriteLine("Something unfamiliar... it vibrates...");
                 }
 
                 PauseBrief();
@@ -279,7 +284,7 @@ namespace Group13_DesignWeek
             // 5) hint on plate in room 1
             if (room.Plates.Contains(pos) && world.CurrentRoomIndex == 0)
             {
-                Learn(world, '@', "Plate");
+                Learn(world, '@', "Metallic disk");
                 Console.WriteLine();
                 Console.WriteLine("A flat metallic disk protrudes from the floor, it bounces when touched...");
                 PauseBrief();
@@ -385,6 +390,26 @@ namespace Group13_DesignWeek
         static World BuildWorld()
         {
             var world = new World();
+
+            var room0 = new Room(
+                "Room 0... intro",
+                new[]
+                {
+                   "#########################################DD###########################################",
+                    "#................C.......C...#....#........................#...#.....#################",
+                    "#................C...........#....#........................#.........#............@..#",
+                    "#....#..#....................#....#..................#######...#.....###...####...#..#",
+                    "#....#..#######......#............#............................#.....#............####",
+                    "#....#......&........#.......#....#..................#######...#.....#...............#",
+                    "#....##########......#.......#....#........................#...#.....##...############",
+                    "#....................#.......#.............................#...#.....................#",
+                    "#..C.C...............#.......#.C..#......P.................#...#.....................#",
+                    "#########################################DD###########################################",
+                    "######################################        ########################################",
+                    "######################################   E    #######################################",
+                    "#####################################################################################",
+                });
+
 
             var room1 = new Room(
                 "Room 1... Storage Bay",

@@ -75,7 +75,7 @@ class Room
                     // levers
                     case 'L': Tiles[x, y] = Tile.Interactable; Levers.Add((x, y)); break;
 
-                    // flavor glyphs... include C as cargo container flavor
+                    // flavor glyphs... 
                     case 'C':
                     case 'O':
                     case 'F':
@@ -91,8 +91,7 @@ class Room
             }
         }
 
-        // if you still use C as design markers near levers in room 3, keep this block,
-        // otherwise it will just be harmless
+        
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
