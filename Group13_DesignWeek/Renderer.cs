@@ -40,40 +40,40 @@ namespace Group13_DesignWeek
             string[] legend = legendList.ToArray();
 
             int legendPadding = 3;
-            int legendWidth = legend.Length == 0 ? 0 : legend.Max(s => s.Length);
-            int totalWidth = room.Width + legendPadding + legendWidth;
-            int leftMargin = Math.Max(0, (Console.WindowWidth - totalWidth) / 2);
+            int legendWidth = legend.Length == 0 ? 0 : legend.Max(s => s.Length); // max width of legend lines
+            int totalWidth = room.Width + legendPadding + legendWidth;// total width of map + legend
+            int leftMargin = Math.Max(0, (Console.WindowWidth - totalWidth) / 2);     // center horizontally
 
-            var sb = new StringBuilder(room.Height * (room.Width + legendWidth + leftMargin + 8));
+            var sb = new StringBuilder(room.Height * (room.Width + legendWidth + leftMargin + 8)); //
 
             // title
-            string title = room.Name;
+            string title = room.Name;//
             sb.Append(' ', leftMargin);
-            sb.AppendLine(title.PadRight(totalWidth));
+            sb.AppendLine(title.PadRight(totalWidth));      
 
             // map rows with fixed width and legend lines
-            for (int y = 0; y < room.Height; y++)
+            for (int y = 0; y < room.Height; y++)// for each row in the room
             {
-                var chars = new char[room.Width];
-                for (int x = 0; x < room.Width; x++)
-                    chars[x] = room.RenderAt(world, x, y, world.PlayerPos);
-                string mapRow = new string(chars);
+                var chars = new char[room.Width];// create a char array for the row
+                for (int x = 0; x < room.Width; x++)// for each column in the row
+                    chars[x] = room.RenderAt(world, x, y, world.PlayerPos);// render the tile at (x, y)
+                string mapRow = new string(chars);// convert the char array to a string
 
-                string legendRow = (y < legend.Length) ? legend[y] : string.Empty;
+                string legendRow = (y < legend.Length) ? legend[y] : string.Empty;// get the corresponding legend line or empty if none
 
-                string line = mapRow + new string(' ', legendPadding) + legendRow;
-                if (line.Length < totalWidth) line = line.PadRight(totalWidth);
+                string line = mapRow + new string(' ', legendPadding) + legendRow;// combine map row and legend line with padding
+                if (line.Length < totalWidth) line = line.PadRight(totalWidth);// ensure fixed width
 
-                sb.Append(' ', leftMargin);
-                sb.AppendLine(line);
+                sb.Append(' ', leftMargin);// add left margin
+                sb.AppendLine(line);// append the line to the string builder
             }
 
             // status
-            string status = (world.CurrentRoomIndex == 1)
-                ? $"Room... {room.Name}    Key... {(world.HasKeyRoom2 ? "yes" : "no")}"
-                : $"Room... {room.Name}";
-            sb.Append(' ', leftMargin);
-            sb.AppendLine(status.PadRight(totalWidth));
+            string status = (world.CurrentRoomIndex == 1)// if in room 2
+                ? $"Room... {room.Name}    Key... {(world.HasKeyRoom2 ? "yes" : "no")}"// show key status
+                : $"Room... {room.Name}";// otherwise just show room name
+            sb.Append(' ', leftMargin);//   add left margin
+            sb.AppendLine(status.PadRight(totalWidth));// append status line
 
             Console.SetCursorPosition(0, 0);
             Console.Write(sb.ToString());

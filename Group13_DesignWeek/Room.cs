@@ -51,8 +51,8 @@ class Room
 
                 switch (c)
                 {
-                    case '#':
-                    case '=': Tiles[x, y] = Tile.Wall; break;
+                    case '#': Tiles[x, y] = Tile.Wall; break;
+                    case '=': Tiles[x, y] = Tile.Wall2; break;
                     case '.': Tiles[x, y] = Tile.Empty; break;
 
                     case 'P': Tiles[x, y] = Tile.Empty; PlayerStart = (x, y); break;
@@ -149,12 +149,14 @@ class Room
 
         return Tiles[x, y] switch
         {
+            Tile.Wall2 => '=',
             Tile.Empty => '.',
             Tile.Wall => '#',
             Tile.Exit => 'E',
             Tile.Plate => '@', // plates draw as @ now
             Tile.Flavor => FlavorGlyphs.TryGetValue((x, y), out var g) ? g : 'O',
             Tile.Interactable => 'T',
+            Tile.Lever => 'L',
             _ => '.'
         };
     }
