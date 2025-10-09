@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Media;
 using System.Threading;
 
 namespace Group13_DesignWeek
@@ -160,7 +161,7 @@ namespace Group13_DesignWeek
             // 2) flavor... narrative objects with glyph specific text
             if (room.Flavors.Contains(pos))
             {
-                Learn(world, 'O', "Flavor");
+                
                 Console.WriteLine();
 
                 if (room.FlavorGlyphs.TryGetValue(pos, out var g))
@@ -168,16 +169,20 @@ namespace Group13_DesignWeek
                     switch (g)
                     {
                         case 'h':
+                            Learn(world, 'h', "Sleepy");
                             Console.WriteLine("A thin sleeping creature with a thousand tiny legs...");
                             break;
                         case '[':
                         case ']':
+                            Learn(world, '[', "Metal Maw");
                             Console.WriteLine("A cube like beast with a large metal maw...");
                             break;
                         case 'Y':
+                            Learn(world, 'Y', "FuzzyBall");
                             Console.WriteLine("A small hairy green friend...");
                             break;
                         case '0':
+                            Learn(world, '0', "Portal");
                             Console.WriteLine("A portal to another world...");
                             break;
                         case 'O':
@@ -201,7 +206,7 @@ namespace Group13_DesignWeek
             // 3) room 2 searchables... one contains the key
             if (world.CurrentRoomIndex == 1 && room.Searchables.Contains(pos))
             {
-                Learn(world, 'T', "Interact");
+                Learn(world, 'T', "Secret Boxes");
 
                 var correct = world.FixedKeyItemPos ??
                               room.Searchables.OrderBy(p => Math.Abs(p.x - room.Width / 2)
@@ -211,8 +216,9 @@ namespace Group13_DesignWeek
                 if (!world.HasKeyRoom2 && pos == correct)
                 {
                     world.HasKeyRoom2 = true;
-                    Console.WriteLine("Inside the locker... a brass key glints. You take it...");
+                    Console.WriteLine("Inside the secret box... a shiny fang. You take it...");
                     PauseBrief();
+                  
                 }
                 else
                 {
@@ -273,11 +279,12 @@ namespace Group13_DesignWeek
             // 5) hint on plate in room 1
             if (room.Plates.Contains(pos) && world.CurrentRoomIndex == 0)
             {
-                Learn(world, '*', "Plate");
+                Learn(world, '@', "Plate");
                 Console.WriteLine();
-                Console.WriteLine("A heavy pressure plate... perhaps the right shape will trigger it...");
+                Console.WriteLine("A flat metallic disk protrudes from the floor, it bounces when touched...");
                 PauseBrief();
                 return;
+
             }
 
             // 6) stepping on exit... try to advance
@@ -366,7 +373,7 @@ namespace Group13_DesignWeek
             {
                 Console.WriteLine("You are an escaped alien deep inside Area 51...");
                 Console.WriteLine("Move with WASD... interact with E... retry with R... quit with Q...");
-                Console.WriteLine("Push the right shape onto the plate to open the door...");
+                
             }
             PauseBrief();
             MarkDirty();
@@ -438,3 +445,4 @@ namespace Group13_DesignWeek
         }
     }
 }
+//need to re add flavor legend updates for interactables
