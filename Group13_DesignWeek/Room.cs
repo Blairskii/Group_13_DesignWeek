@@ -1,4 +1,7 @@
-﻿using Group13_DesignWeek;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Group13_DesignWeek;
 
 class Room
 {
@@ -11,12 +14,12 @@ class Room
 
     // dynamic collections
     public Dictionary<(int x, int y), ShapeId> Shapes = new();   // pushables 1..3..Barrel
-    public HashSet<(int x, int y)> Plates = new();               // pressure plates
-    public HashSet<(int x, int y)> Doors = new();                // doors
-    public (int x, int y)? ExitPos;                              // exit tile
+    public HashSet<(int x, int y)> Plates = new();               // pressure plates (@)
+    public HashSet<(int x, int y)> Doors = new();                // doors (D)
+    public (int x, int y)? ExitPos;                              // exit (E)
 
-    public HashSet<(int x, int y)> Searchables = new();          // T or I
-    public HashSet<(int x, int y)> Levers = new();               // L
+    public HashSet<(int x, int y)> Searchables = new();          // lockers etc. (T / I)
+    public HashSet<(int x, int y)> Levers = new();               // levers (L)
 
     public HashSet<(int x, int y)> Flavors = new();              // flavor interactables
     public Dictionary<(int x, int y), char> FlavorGlyphs = new();// which glyph was placed
@@ -44,7 +47,7 @@ class Room
 
         for (int y = 0; y < Height; y++)
         {
-            string row = rows[y]; // keep spaces if any
+            string row = rows[y];
             for (int x = 0; x < Width; x++)
             {
                 char c = (x < row.Length) ? row[x] : '#'; // pad short rows as walls
@@ -59,7 +62,7 @@ class Room
                     case 'E': Tiles[x, y] = Tile.Exit; ExitPos = (x, y); break;
                     case 'D': Tiles[x, y] = Tile.Door; Doors.Add((x, y)); break;
 
-                    // plates now use @
+                    // plates draw as @
                     case '@': Tiles[x, y] = Tile.Plate; Plates.Add((x, y)); break;
 
                     // pushables... include barrel as &
@@ -72,10 +75,10 @@ class Room
                     case 'I':
                     case 'T': Tiles[x, y] = Tile.Interactable; Searchables.Add((x, y)); break;
 
-                    // levers
-                    case 'L': Tiles[x, y] = Tile.Interactable; Levers.Add((x, y)); break;
+                    // levers are real levers (so they can be shown as L in legend)
+                    case 'L': Tiles[x, y] = Tile.Lever; Levers.Add((x, y)); break;
 
-                    // flavor glyphs... 
+                    // flavor glyphs
                     case 'C':
                     case 'O':
                     case 'F':
@@ -91,7 +94,7 @@ class Room
             }
         }
 
-        
+        // mark levers that had a 'C' next to them in ASCII
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
@@ -114,7 +117,7 @@ class Room
     public bool IsWalkable(World world, int x, int y)
     {
         if (x < 0 || y < 0 || x >= Width || y >= Height) return false;
-        if (Tiles[x, y] == Tile.Wall) return false;
+        if (Tiles[x, y] == Tile.Wall || Tiles[x, y] == Tile.Wall2) return false;
         if (Doors.Contains((x, y)) && !world.OpenDoors.Contains((this, (x, y)))) return false;
         if (Shapes.ContainsKey((x, y))) return false; // shapes are solid
         return true;
@@ -123,7 +126,7 @@ class Room
     public bool IsEmptyForShape(World world, int x, int y)
     {
         if (x < 0 || y < 0 || x >= Width || y >= Height) return false;
-        if (Tiles[x, y] == Tile.Wall) return false;
+        if (Tiles[x, y] == Tile.Wall || Tiles[x, y] == Tile.Wall2) return false;
         if (Doors.Contains((x, y)) && !world.OpenDoors.Contains((this, (x, y)))) return false;
         if (Shapes.ContainsKey((x, y))) return false;
         return true;
@@ -153,8 +156,8 @@ class Room
             Tile.Empty => '.',
             Tile.Wall => '#',
             Tile.Exit => 'E',
-            Tile.Plate => '@', // plates draw as @ now
-            Tile.Flavor => FlavorGlyphs.TryGetValue((x, y), out var g) ? g : 'O',
+            Tile.Plate => '@',
+            Tile.Flavor => FlavorGlyphs.TryGetValue((x, y), out var g) ? g : '.', // never add generic "Flavor" to legend
             Tile.Interactable => 'T',
             Tile.Lever => 'L',
             _ => '.'
