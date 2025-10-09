@@ -16,10 +16,11 @@ namespace Group13_DesignWeek
             Renderer.TryResizeConsole(120, 40);
             Console.CursorVisible = false;
 
+            // point Audio to your WAV folder (you set this earlier)
             Audio.Init(AppDomain.CurrentDomain.BaseDirectory + "Assets_Audio");
 
             var world = BuildWorld();
-            EnterRoom(world, 0, reset: true);
+            EnterRoom(world, 0, reset: true); // start in Level 0 (Training Wing)
 
             bool quit = false;
 
@@ -79,16 +80,14 @@ namespace Group13_DesignWeek
             }
         }
 
-        // =======================================================
-        // MOVEMENT
-        // =======================================================
+        // ===================== MOVEMENT =====================
         static void TryMove(World world, int dx, int dy)
         {
             var room = world.CurrentRoom;
             var (x, y) = world.PlayerPos;
             int nx = x + dx, ny = y + dy;
 
-            // push shapes
+            // push shape
             if (room.Shapes.ContainsKey((nx, ny)))
             {
                 int sx = nx + dx, sy = ny + dy;
@@ -108,12 +107,14 @@ namespace Group13_DesignWeek
                     if (room.IsWalkable(world, nx, ny))
                         world.PlayerPos = (nx, ny);
 
-                    if (world.CurrentRoomIndex == 0) EvaluateRoom1Plate(world);
+                    // plate rule now works on the CURRENT room (tutorial-friendly, harmless if no doors)
+                    EvaluateBarrelPlateForCurrentRoom(world);
                     TryAdvanceIfOnExit(world);
                 }
                 return;
             }
 
+            // walk
             if (room.IsWalkable(world, nx, ny))
             {
                 world.PlayerPos = (nx, ny);
@@ -121,9 +122,7 @@ namespace Group13_DesignWeek
             }
         }
 
-        // =======================================================
-        // INTERACTION
-        // =======================================================
+        // ===================== INTERACT =====================
         static void TryInteract(World world)
         {
             var room = world.CurrentRoom;
@@ -135,7 +134,7 @@ namespace Group13_DesignWeek
                     w.DiscoveredLegend[ch] = label;
             }
 
-            // --- 1) Doors ---
+            // 1) Doors (adjacent)
             foreach (var dir in new (int dx, int dy)[] { (0, -1), (0, 1), (-1, 0), (1, 0) })
             {
                 var neighbor = (pos.x + dir.dx, pos.y + dir.dy);
@@ -144,16 +143,24 @@ namespace Group13_DesignWeek
                     Learn(world, 'D', "Door");
                     bool open = world.OpenDoors.Contains((room, neighbor));
 
-                    if (!open && world.CurrentRoomIndex == 1 && world.HasKeyRoom2)
+                    // room 2 still requires the key; other rooms give normal feedback
+                    if (!open && world.CurrentRoomIndex == 2 && world.HasKeyRoom2)
                     {
                         world.OpenDoors.Add((room, neighbor));
                         Renderer.ShowPopup("You unlock the door with the key...");
                         Audio.PlayDoorOpen();
                     }
-                    else if (!open)
+                    else if (!open && world.CurrentRoomIndex == 2)
                     {
                         Renderer.ShowPopup("The door is locked...");
                         Audio.PlayDoorLocked();
+                    }
+                    else if (!open && world.CurrentRoomIndex != 2)
+                    {
+                        // training/other rooms: just open to demo the mechanic
+                        world.OpenDoors.Add((room, neighbor));
+                        Renderer.ShowPopup("You open the door.");
+                        Audio.PlayDoorOpen();
                     }
                     else
                     {
@@ -163,7 +170,7 @@ namespace Group13_DesignWeek
                 }
             }
 
-            // --- 2) Flavor glyphs ---
+            // 2) Flavor glyphs (on cell)
             if (room.Flavors.Contains(pos))
             {
                 if (room.FlavorGlyphs.TryGetValue(pos, out var g))
@@ -173,7 +180,11 @@ namespace Group13_DesignWeek
                         case 'C': Learn(world, 'C', "Concealment Cube"); Renderer.ShowPopup("A concealment cube... what primitive technology..."); Audio.PlayOnce("scrape"); break;
                         case 'h': Learn(world, 'h', "Sleeper"); Renderer.ShowPopup("A thin sleeping creature with a thousand tiny legs..."); Audio.PlayOnce("sweep"); break;
                         case '[':
-                        case ']': if (!world.DiscoveredLegend.ContainsKey('[')) world.DiscoveredLegend['['] = "Metal maw"; Renderer.ShowPopup("A cube like beast with a large metal maw..."); Audio.PlayOnce("door"); break;
+                        case ']':
+                            if (!world.DiscoveredLegend.ContainsKey('[')) world.DiscoveredLegend['['] = "Metal maw";
+                            Renderer.ShowPopup("A cube like beast with a large metal maw...");
+                            Audio.PlayOnce("door");
+                            break;
                         case 'Y': Learn(world, 'Y', "Green friend"); Renderer.ShowPopup("A small hairy green friend..."); Audio.PlayOnce("leaves"); break;
                         case '0': Learn(world, '0', "Portal"); Renderer.ShowPopup("A portal to another world..."); Audio.PlayOnce("portal"); break;
                         case 'O':
@@ -189,113 +200,135 @@ namespace Group13_DesignWeek
                 return;
             }
 
-            // --- 3) Searchables (room 2) ---
-            if (world.CurrentRoomIndex == 1 && room.Searchables.Contains(pos))
+            // 3) Searchables (T) - always teach & show; key logic only in real Room 2 (index 2)
+            if (room.Searchables.Contains(pos))
             {
                 Learn(world, 'T', "Secret Container");
-                var correct = world.FixedKeyItemPos ??
-                              room.Searchables.OrderBy(p => Math.Abs(p.x - room.Width / 2)
-                                                         + Math.Abs(p.y - room.Height / 2)).First();
 
-                if (!world.HasKeyRoom2 && pos == correct)
+                if (world.CurrentRoomIndex == 2)
                 {
-                    world.HasKeyRoom2 = true;
-                    Renderer.ShowPopup("Inside the secret box... a shiny fang. You take it...");
-                    Audio.PlayFoundKey();
-                }
-                else
-                {
-                    Renderer.ShowPopup("Dust... notes... old coats... nothing useful...");
-                    Audio.PlayOnce("button");
-                }
-                return;
-            }
+                    // real key hunt
+                    var correct = world.FixedKeyItemPos ??
+                                  room.Searchables.OrderBy(p => Math.Abs(p.x - room.Width / 2)
+                                                             + Math.Abs(p.y - room.Height / 2)).First();
 
-            // --- 4) Levers (room 3) ---
-            if (world.CurrentRoomIndex == 2 && room.Levers.Contains(pos))
-            {
-                Learn(world, 'L', "Lever");
-
-                if (world.PulledLevers.Contains(pos))
-                {
-                    Renderer.ShowPopup("The bone already remembered your touch...");
-                    Audio.PlayOnce("button");
-                    return;
-                }
-
-                world.PulledLevers.Add(pos);
-                if (room.CorrectLevers.Contains(pos))
-                {
-                    var orderedDoors = room.Doors.OrderBy(d => d.x).ThenBy(d => d.y).ToList();
-                    while (world.NextDoorIndexRoom3 < orderedDoors.Count &&
-                           world.OpenDoors.Contains((room, orderedDoors[world.NextDoorIndexRoom3])))
-                        world.NextDoorIndexRoom3++;
-
-                    if (world.NextDoorIndexRoom3 < orderedDoors.Count)
+                    if (!world.HasKeyRoom2 && pos == correct)
                     {
-                        var doorToOpen = orderedDoors[world.NextDoorIndexRoom3];
-                        world.OpenDoors.Add((room, doorToOpen));
-                        world.NextDoorIndexRoom3++;
-                        Renderer.ShowPopup("The bone stick hums... metal breath unlocks ahead...");
-                        Audio.PlayDoorOpen();
+                        world.HasKeyRoom2 = true;
+                        Renderer.ShowPopup("Inside the secret box... a shiny fang. You take it...");
+                        Audio.PlayFoundKey();
                     }
                     else
                     {
-                        Renderer.ShowPopup("A distant sigh... nothing left to open...");
+                        Renderer.ShowPopup("Dust... notes... old coats... nothing useful...");
                         Audio.PlayOnce("button");
                     }
                 }
                 else
                 {
-                    Renderer.ShowPopup("The bone stick yawns... nothing happens...");
+                    // tutorial/other rooms: demo text
+                    Renderer.ShowPopup("A container full of secrets...");
+                    Audio.PlayLockerOpen();
+                }
+                return;
+            }
+
+            // 4) Levers (L) - always teach & show; only open doors in the lever room (index 3)
+            if (room.Levers.Contains(pos))
+            {
+                Learn(world, 'L', "Lever");
+
+                if (world.CurrentRoomIndex == 3)
+                {
+                    // real lever puzzle
+                    if (world.PulledLevers.Contains(pos))
+                    {
+                        Renderer.ShowPopup("The bone already remembered your touch...");
+                        Audio.PlayOnce("button");
+                        return;
+                    }
+
+                    world.PulledLevers.Add(pos);
+
+                    if (room.CorrectLevers.Contains(pos))
+                    {
+                        var orderedDoors = room.Doors.OrderBy(d => d.x).ThenBy(d => d.y).ToList();
+                        while (world.NextDoorIndexRoom3 < orderedDoors.Count &&
+                               world.OpenDoors.Contains((room, orderedDoors[world.NextDoorIndexRoom3])))
+                            world.NextDoorIndexRoom3++;
+
+                        if (world.NextDoorIndexRoom3 < orderedDoors.Count)
+                        {
+                            var doorToOpen = orderedDoors[world.NextDoorIndexRoom3];
+                            world.OpenDoors.Add((room, doorToOpen));
+                            world.NextDoorIndexRoom3++;
+                            Renderer.ShowPopup("The bone stick hums... metal breath unlocks ahead...");
+                            Audio.PlayDoorOpen();
+                        }
+                        else
+                        {
+                            Renderer.ShowPopup("A distant sigh... nothing left to open...");
+                            Audio.PlayOnce("button");
+                        }
+                    }
+                    else
+                    {
+                        Renderer.ShowPopup("The bone stick yawns... nothing happens...");
+                        Audio.PlayOnce("button");
+                    }
+                }
+                else
+                {
+                    // tutorial/other rooms: demo text
+                    Renderer.ShowPopup("You pull the lever. Machinery stirs somewhere far away...");
                     Audio.PlayOnce("button");
                 }
                 return;
             }
 
-            // --- 5) Plates (room 1) ---
-            if (room.Plates.Contains(pos) && world.CurrentRoomIndex == 0)
+            // 5) Plates (@)
+            if (room.Plates.Contains(pos))
             {
-                Learn(world, '@', "Metal disc");
+                if (!world.DiscoveredLegend.ContainsKey('@'))
+                    world.DiscoveredLegend['@'] = "Metal disc";
+
                 Renderer.ShowPopup("A flat metallic disc protrudes from the floor, it bounces when touched...");
                 Audio.PlayPlatePress();
                 return;
             }
 
-            // --- Default ---
+            // 6) Exit
+            if (room.ExitPos.HasValue && pos == room.ExitPos.Value)
+            {
+                if (!world.DiscoveredLegend.ContainsKey('E'))
+                    world.DiscoveredLegend['E'] = "Exit";
+                TryAdvanceIfOnExit(world);
+                return;
+            }
+
             Renderer.ShowPopup("There is nothing to interact with here...");
             Audio.PlayOnce("button");
         }
 
-        // =======================================================
-        // ROOM FLOW + PLATE RULES
-        // =======================================================
+        // ===================== FLOW + RULES =====================
         static void TryAdvanceIfOnExit(World world)
         {
             var room = world.CurrentRoom;
             if (!room.ExitPos.HasValue) return;
             if (world.PlayerPos != room.ExitPos.Value) return;
 
-            if (world.CurrentRoomIndex == 0)
+            // 0 -> 1, 1 -> 2, 2 -> 3
+            if (world.CurrentRoomIndex < world.Rooms.Count - 1)
             {
-                foreach (var d in room.Doors)
-                    if (!world.OpenDoors.Contains((room, d))) return;
-                EnterRoom(world, 1, reset: true);
-                return;
-            }
-
-            if (world.CurrentRoomIndex == 1)
-            {
-                foreach (var d in room.Doors)
-                    if (!world.OpenDoors.Contains((room, d))) return;
-                EnterRoom(world, 2, reset: true);
+                EnterRoom(world, world.CurrentRoomIndex + 1, reset: true);
                 return;
             }
         }
 
-        static void EvaluateRoom1Plate(World world)
+        // Barrel on plate rule now applies to the CURRENT room (works in tutorial too, harmless if no doors)
+        static void EvaluateBarrelPlateForCurrentRoom(World world)
         {
-            var room = world.Rooms[0];
+            var room = world.CurrentRoom;
             bool barrelOnPlate = room.Plates.Any(plate =>
                 room.Shapes.TryGetValue(plate, out var sid) && sid == ShapeId.Barrel);
 
@@ -314,17 +347,24 @@ namespace Group13_DesignWeek
             if (reset) room.Reset();
             world.PlayerPos = room.PlayerStart;
 
-            if (index == 0)
+            if (index == 1) // Storage Bay (original puzzle room)
+            {
                 foreach (var d in room.Doors) world.OpenDoors.Remove((room, d));
-            else if (index == 1)
+            }
+            else if (index == 2) // Lab Ward (key/lockers)
             {
                 world.HasKeyRoom2 = false;
                 foreach (var d in room.Doors) world.OpenDoors.Remove((room, d));
             }
-            else if (index == 2)
+            else if (index == 3) // Lever Gauntlet
             {
                 world.PulledLevers.Clear();
                 world.NextDoorIndexRoom3 = 0;
+                foreach (var d in room.Doors) world.OpenDoors.Remove((room, d));
+            }
+            else
+            {
+                // Training Wing (L0) or other rooms
                 foreach (var d in room.Doors) world.OpenDoors.Remove((room, d));
             }
 
@@ -332,21 +372,36 @@ namespace Group13_DesignWeek
                 room.Name,
                 "",
                 index == 0
-                    ? "You are an escaped alien deep inside Area 51..."
+                    ? "Practice with the gizmos. Try everything!"
                     : "..."
             );
 
             MarkDirty();
         }
 
-        // =======================================================
-        // LEVELS
-        // =======================================================
+        // ===================== LEVELS =====================
         static World BuildWorld()
         {
             var world = new World();
 
-            // Room 1
+            // -------- Level 0: Training Wing (all interactables demo) --------
+            var room0 = new Room(
+                "Level 0... Training Wing",
+                new[]
+                {
+                    "######################################################################################",
+                    "#P..&....@..C..h..[.]..Y..0..O..F..L..T.................D.................E.........#",
+                    "#....................................................................................#",
+                    "#...............................................@....................................#",
+                    "#...............................&....................................................#",
+                    "#............C...........h...........[.]...........Y...........0...........T........#",
+                    "#....................................................................................#",
+                    "#.............................................................L......................#",
+                    "#.................................................D..................................#",
+                    "######################################################################################",
+                });
+
+            // -------- Level 1: Storage Bay (unchanged from your last message, shifted to index 1) --------
             var room1 = new Room(
                 "Room 1... Storage Bay",
                 new[]
@@ -366,7 +421,7 @@ namespace Group13_DesignWeek
                     "#####################################################################################",
                 });
 
-            // Room 2
+            // -------- Level 2: Lab Ward (unchanged) --------
             var room2 = new Room(
                 "Room 2... Lab Ward",
                 new[]
@@ -382,7 +437,7 @@ namespace Group13_DesignWeek
                     "######################################################################################",
                 });
 
-            // Room 3
+            // -------- Level 3: Lever Gauntlet (unchanged) --------
             var room3 = new Room(
                 "Room 3... Lever Gauntlet",
                 new[]
@@ -398,11 +453,12 @@ namespace Group13_DesignWeek
                     "#====================================================================================#",
                 });
 
-            world.Rooms.Add(room1);
-            world.Rooms.Add(room2);
-            world.Rooms.Add(room3);
-            world.CorrectShapeForPlate = ShapeId.Two;
+            world.Rooms.Add(room0); // index 0
+            world.Rooms.Add(room1); // index 1
+            world.Rooms.Add(room2); // index 2
+            world.Rooms.Add(room3); // index 3
 
+            world.CorrectShapeForPlate = ShapeId.Two;
             return world;
         }
     }
