@@ -124,7 +124,7 @@ namespace Group13_DesignWeek
                     {
                         if (!world.DiscoveredLegend.ContainsKey('&'))
                             world.DiscoveredLegend['&'] = "Heavy cylinder";
-                        Audio.PlayPushHeavy();
+                        
                     }
 
                     if (room.IsWalkable(world, nx, ny))
@@ -161,29 +161,29 @@ namespace Group13_DesignWeek
                 var neighbor = (pos.x + dir.dx, pos.y + dir.dy);
                 if (room.Doors.Contains(neighbor))
                 {
-                    Learn(world, 'D', "Door");
+                    Learn(world, 'D', "Metal Mouth");
                     bool open = world.OpenDoors.Contains((room, neighbor));
 
                     if (!open && world.CurrentRoomIndex == 2 && world.HasKeyRoom2)
                     {
                         world.OpenDoors.Add((room, neighbor));
-                        Renderer.ShowPopup("You unlock the door with the key...");
+                        Renderer.ShowPopup("The metal Mouth Opens Combined with the shiny fang...");
                         Audio.PlayDoorOpen();
                     }
                     else if (!open && world.CurrentRoomIndex == 2)
                     {
-                        Renderer.ShowPopup("The door is locked...");
+                        Renderer.ShowPopup("The mouth's lips are sealed...");
                         Audio.PlayDoorLocked();
                     }
                     else if (!open && world.CurrentRoomIndex != 2)
                     {
                         world.OpenDoors.Add((room, neighbor));
-                        Renderer.ShowPopup("You open the door.");
+                        Renderer.ShowPopup("A metal mouth with sealed lips.");
                         Audio.PlayDoorOpen();
                     }
                     else
                     {
-                        Renderer.ShowPopup("The door is already open.");
+                        Renderer.ShowPopup("The Mouth is already Open.");
                     }
                     return;
                 }
@@ -201,14 +201,14 @@ namespace Group13_DesignWeek
                         case '[':
                         case ']':
                             if (!world.DiscoveredLegend.ContainsKey('[')) world.DiscoveredLegend['['] = "Metal maw";
-                            Renderer.ShowPopup("A cube like beast with a large metal maw...");
+                            Renderer.ShowPopup("A Portal to another Room...");
                             Audio.PlayOnce("door");
                             break;
                         case 'Y': Learn(world, 'Y', "Green friend"); Renderer.ShowPopup("A small hairy green friend..."); Audio.PlayOnce("leaves"); break;
-                        case '0': Learn(world, '0', "Portal"); Renderer.ShowPopup("A portal to another world..."); Audio.PlayOnce("portal"); break;
+                        case '0': Learn(world, '0', "Donaught"); Renderer.ShowPopup("Doughnaut...Home from space"); Audio.PlayOnce("portal"); break;
                         case 'O':
-                        case 'F': Renderer.ShowPopup("A human artifact... symbols that match your species code..."); Audio.PlayOnce("button"); break;
-                        default: Renderer.ShowPopup("Something unfamiliar... it hums softly..."); Audio.PlayOnce("button"); break;
+                        case 'F': Renderer.ShowPopup("A human artifact... symbols that match your species code..."); Audio.PlayOnce("Lever"); break;
+                        default: Renderer.ShowPopup("Something unfamiliar... it hums softly..."); Audio.PlayOnce("Portal"); break;
                     }
                 }
                 else
@@ -238,7 +238,7 @@ namespace Group13_DesignWeek
                     }
                     else
                     {
-                        Renderer.ShowPopup("Dust... notes... old coats... nothing useful...");
+                        Renderer.ShowPopup("What looks to be Human Belongings... how archacaic...");
                         Audio.PlayOnce("button");
                     }
                 }
@@ -253,13 +253,13 @@ namespace Group13_DesignWeek
             // 4) Levers (L)
             if (room.Levers.Contains(pos))
             {
-                Learn(world, 'L', "Lever");
+                Learn(world, 'L', "Bone stick");
 
                 if (world.CurrentRoomIndex == 3)
                 {
                     if (world.PulledLevers.Contains(pos))
                     {
-                        Renderer.ShowPopup("The bone already remembered your touch...");
+                        Renderer.ShowPopup("The Bone is stuck...");
                         Audio.PlayOnce("button");
                         return;
                     }
@@ -278,12 +278,12 @@ namespace Group13_DesignWeek
                             var doorToOpen = orderedDoors[world.NextDoorIndexRoom3];
                             world.OpenDoors.Add((room, doorToOpen));
                             world.NextDoorIndexRoom3++;
-                            Renderer.ShowPopup("The bone stick hums... metal breath unlocks ahead...");
+                            Renderer.ShowPopup("The bone stick hums... metal mouth screams briefly...");
                             Audio.PlayDoorOpen();
                         }
                         else
                         {
-                            Renderer.ShowPopup("A distant sigh... nothing left to open...");
+                            Renderer.ShowPopup("Blarp...");
                             Audio.PlayOnce("button");
                         }
                     }
@@ -295,7 +295,7 @@ namespace Group13_DesignWeek
                 }
                 else
                 {
-                    Renderer.ShowPopup("You pull the lever. Machinery stirs somewhere far away...");
+                    Renderer.ShowPopup("You pull the Bone stick. metal mouth screams from afar...");
                     Audio.PlayOnce("button");
                 }
                 return;
@@ -305,9 +305,9 @@ namespace Group13_DesignWeek
             if (room.Plates.Contains(pos))
             {
                 if (!world.DiscoveredLegend.ContainsKey('@'))
-                    world.DiscoveredLegend['@'] = "Metal disc";
+                    world.DiscoveredLegend['@'] = "Frisbee";
 
-                Renderer.ShowPopup("A flat metallic disc protrudes from the floor, it bounces when touched...");
+                Renderer.ShowPopup("A frisbee! lowers when i step on it...");
                 Audio.PlayPlatePress();
                 return;
             }
@@ -316,12 +316,12 @@ namespace Group13_DesignWeek
             if (room.ExitPos.HasValue && pos == room.ExitPos.Value)
             {
                 if (!world.DiscoveredLegend.ContainsKey('E'))
-                    world.DiscoveredLegend['E'] = "Exit";
+                    world.DiscoveredLegend['E'] = "Outflow";
                 TryAdvanceIfOnExit(world);
                 return;
             }
 
-            Renderer.ShowPopup("There is nothing to interact with here...");
+            Renderer.ShowPopup("I dont know what this is...");
             Audio.PlayOnce("button");
         }
 
@@ -384,7 +384,7 @@ namespace Group13_DesignWeek
             Renderer.ShowPopup(
                 room.Name,
                 "",
-                (index == 0) ? "Practice with the gizmos. Try everything!" : "..."
+                (index == 0) ? "You smash out of your containment tank... into a room full of objects unkown to you..." : "..."
             );
 
             MarkDirty();
@@ -396,7 +396,7 @@ namespace Group13_DesignWeek
             var world = new World();
 
             var room0 = new Room(
-                "Level 0... Training Wing",
+                "Stage 1... Overwhelmed",
                 new[]
                 {
                     "######################################################################################",
@@ -412,7 +412,7 @@ namespace Group13_DesignWeek
                 });
 
             var room1 = new Room(
-                "Room 1... Storage Bay",
+                "Stage 2... Fear",
                 new[]
                 {
                    "#########################################DD###########################################",
@@ -431,7 +431,7 @@ namespace Group13_DesignWeek
                 });
 
             var room2 = new Room(
-                "Room 2... Lab Ward",
+                "Stage 3 ...Confusion",
                 new[]
                 {
                     "######################################################################################",
@@ -446,7 +446,7 @@ namespace Group13_DesignWeek
                 });
 
             var room3 = new Room(
-                "Room 3... Lever Gauntlet",
+                "Room Stage 4... Freedom",
                 new[]
                 {
                     "#====================================================================================#",
