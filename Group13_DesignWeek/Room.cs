@@ -78,7 +78,7 @@ class Room
                     // levers are real levers (so they can be shown as L in legend)
                     case 'L': Tiles[x, y] = Tile.Lever; Levers.Add((x, y)); break;
 
-                    // flavor glyphs
+                    // flavor glyphs (including 'C' initially — we’ll prune marker-Cs below)
                     case 'C':
                     case 'O':
                     case 'F':
@@ -94,7 +94,7 @@ class Room
             }
         }
 
-        // mark levers that had a 'C' next to them in ASCII
+        // Correct lever tagging uses the raw ASCII 'C' adjacency — unchanged
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
@@ -109,6 +109,31 @@ class Room
 
                 if (hasC) CorrectLevers.Add((x, y));
             }
+        }
+
+        // HIDE ONLY those 'C' flavor tiles that are used as LEVER MARKERS:
+        // If a 'C' is orthogonally adjacent to any 'L', convert that cell to floor.
+        var csToRemove = new List<(int x, int y)>();
+        foreach (var kv in FlavorGlyphs)
+        {
+            if (kv.Value != 'C') continue;
+            var (cx, cy) = kv.Key;
+
+            bool adjacentToLever =
+                Levers.Contains((cx - 1, cy)) ||
+                Levers.Contains((cx + 1, cy)) ||
+                Levers.Contains((cx, cy - 1)) ||
+                Levers.Contains((cx, cy + 1));
+
+            if (adjacentToLever)
+                csToRemove.Add((cx, cy));
+        }
+
+        foreach (var p in csToRemove)
+        {
+            Flavors.Remove(p);
+            FlavorGlyphs.Remove(p);
+            Tiles[p.x, p.y] = Tile.Empty; // render as floor, invisible hint
         }
     }
 
@@ -157,7 +182,7 @@ class Room
             Tile.Wall => '#',
             Tile.Exit => 'E',
             Tile.Plate => '@',
-            Tile.Flavor => FlavorGlyphs.TryGetValue((x, y), out var g) ? g : '.', // never add generic "Flavor" to legend
+            Tile.Flavor => FlavorGlyphs.TryGetValue((x, y), out var g) ? g : '.', // no generic "Flavor"
             Tile.Interactable => 'T',
             Tile.Lever => 'L',
             _ => '.'
