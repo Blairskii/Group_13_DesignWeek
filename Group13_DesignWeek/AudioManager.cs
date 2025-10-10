@@ -1,4 +1,4 @@
-﻿// AudioManager.cs
+﻿// Audio.cs
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,87 +8,130 @@ namespace Group13_DesignWeek
 {
     static class Audio
     {
+        // registry of loaded players
         private static readonly Dictionary<string, SoundPlayer> _players = new(StringComparer.OrdinalIgnoreCase);
+
+        // background loop player
+        private static SoundPlayer _ambientLoop = null;
+
+        // base folder for all WAV files
         private static string _baseFolder = AppDomain.CurrentDomain.BaseDirectory;
 
-        // Maps legend names or interaction categories to specific WAV files
+        // friendly names to filenames
         private static readonly Dictionary<string, string> _fileMap = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "Frisbee", "Plate.wav" },               // pressure plates
-            { "Concealment tube", "Locker.wav" },     // concealment cube
-            { "Sleeper", "Sleepy.wav" },              // h
-            { "Metal Maw", "Window.wav" },            // [ or ]
-            { "Green friend", "Green.wav" },          // Y
-            { "Doughnout", "Doughnaut.wav" },         // 0 (portal)
-            { "Bone stick", "Lever.wav" },            // L
-            { "Secret container", "Locker.wav" },     // T
-            { "Metal mouth", "Door.wav" },            // D
-            { "Found key", "Key.wav" }                // key pickup
+            { "button",      "Button.wav" },
+            { "sweep",       "Sweep.wav" },
+            { "key",         "Key.wav" },
+            { "scrape",      "Knife Scrape.wav" },
+            { "leaves",      "Leaves.wav" },
+            { "door",        "Metal Door.wav" },
+            { "portal",      "Portal.wav" },
+            { "locker",      "Locker.wav" },
+            { "plate",       "Plate.wav" },
+            { "sleepy",      "Sleepy.wav" },
+            { "window",      "Window.wav" },
+            { "green",       "Green.wav" },
+            { "doughnaut",   "Doughnaut.wav" },
+            { "lever",       "Lever.wav" },
+            { "bg",          "BG.wav" }  // background music loop
         };
 
+        // -------------------------------------
+        // Initialization
+        // -------------------------------------
         public static void Init(string baseFolder)
         {
             if (!string.IsNullOrWhiteSpace(baseFolder))
                 _baseFolder = baseFolder;
 
-            foreach (var key in _fileMap.Keys)
-                Preload(key);
+            Preload("button");
+            Preload("door");
+            Preload("scrape");
+            Preload("key");
+            Preload("leaves");
+            Preload("portal");
         }
 
-        // ==================================
-        // Main playback methods
-        // ==================================
+        // -------------------------------------
+        // General one-shots
+        // -------------------------------------
         public static void PlayOnce(string key)
         {
-            if (string.IsNullOrWhiteSpace(key)) return;
             if (TryGetPlayer(key, out var sp))
             {
                 try { sp.Play(); } catch { }
             }
         }
 
-        public static void PlayLoop(string key)
+        // Common game SFX convenience
+        public static void PlayPlatePress() => PlayOnce("plate");
+        public static void PlayDoorOpen() => PlayOnce("door");
+        public static void PlayDoorLocked() => PlayOnce("door");
+        public static void PlayLockerOpen() => PlayOnce("locker");
+        public static void PlayFoundKey() => PlayOnce("key");
+
+        // -------------------------------------
+        // Background loop
+        // -------------------------------------
+        public static void PlayBackgroundLoop(string fileName = "BG.wav")
         {
-            if (TryGetPlayer(key, out var sp))
+            try
             {
-                try { sp.PlayLooping(); } catch { }
+                string full = Path.Combine(_baseFolder, fileName);
+                if (File.Exists(full))
+                {
+                    _ambientLoop = new SoundPlayer(full);
+                    _ambientLoop.Load();
+                    _ambientLoop.PlayLooping();
+                }
+            }
+            catch
+            {
+                // ignore errors if file missing
             }
         }
 
-        public static void StopAll()
+        public static void StopBackgroundLoop()
         {
-            foreach (var sp in _players.Values)
+            try
             {
-                try { sp.Stop(); } catch { }
+                _ambientLoop?.Stop();
             }
+            catch { }
         }
 
-        // ==================================
-        // Game-specific helpers
-        // ==================================
-        public static void PlayPlatePress() => PlayOnce("Frisbee");
-        public static void PlayDoorOpen() => PlayOnce("Metal mouth");
-        public static void PlayDoorLocked() => PlayOnce("Metal mouth");
-        public static void PlayLeverPull() => PlayOnce("Bone stick");
-        public static void PlayLockerOpen() => PlayOnce("Secret container");
-        public static void PlayFoundKey() => PlayOnce("Found key");
-
-        /// <summary>
-        /// Plays the corresponding sound for a flavor or interactible type.
-        /// </summary>
-        public static void PlayFlavor(string legendName)
+        // -------------------------------------
+        // Flavor SFX by glyph legend
+        // -------------------------------------
+        public static void PlayFlavorAt(Room room, (int, int) pos)
         {
-            if (string.IsNullOrWhiteSpace(legendName)) return;
+            if (room == null) return;
 
-            if (_fileMap.TryGetValue(legendName, out var _))
-                PlayOnce(legendName);
+            if (room.FlavorGlyphs.TryGetValue(pos, out var g))
+            {
+                switch (g)
+                {
+                    case 'C': PlayOnce("locker"); break;           // Concealment cube
+                    case 'h': PlayOnce("sleepy"); break;           // Sleeper
+                    case '[':
+                    case ']': PlayOnce("window"); break;           // Metal maw
+                    case 'Y': PlayOnce("green"); break;            // Green friend
+                    case '0': PlayOnce("portal"); break;           // Portal
+                    case 'O':
+                    case 'F': PlayOnce("doughnaut"); break;        // Doughnaut
+                    default: PlayOnce("button"); break;
+                }
+            }
             else
-                PlayOnce("Frisbee"); // soft default
+            {
+                PlayOnce("button");
+            }
         }
 
-        // ==================================
-        // Internal file handling
-        // ==================================
+        // -------------------------------------
+        // Internals
+        // -------------------------------------
         private static void Preload(string key) => TryGetPlayer(key, out _);
 
         private static bool TryGetPlayer(string key, out SoundPlayer sp)
@@ -97,6 +140,7 @@ namespace Group13_DesignWeek
             if (string.IsNullOrWhiteSpace(key)) return false;
 
             if (_players.TryGetValue(key, out sp)) return true;
+
             if (!_fileMap.TryGetValue(key, out var fileName)) return false;
 
             var full = Path.Combine(_baseFolder, fileName);
@@ -105,7 +149,7 @@ namespace Group13_DesignWeek
             try
             {
                 sp = new SoundPlayer(full);
-                sp.Load();
+                sp.Load(); // synchronous load
                 _players[key] = sp;
                 return true;
             }

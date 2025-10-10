@@ -3,11 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+
 namespace Group13_DesignWeek
 {
     static class Game
     {
+        static System.Media.SoundPlayer bgPlayer;
+
         static bool _dirty = true;
+
         static void MarkDirty() => _dirty = true;
 
         // Set these to your PNGs (or leave null to skip images and just show text boxes)
@@ -23,6 +27,11 @@ namespace Group13_DesignWeek
 
             // Audio root (already working on your side)
             Audio.Init(AppDomain.CurrentDomain.BaseDirectory + "Assets_Audio");
+            bgPlayer = new System.Media.SoundPlayer(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Assets_Audio", "BG.wav"));
+            bgPlayer.PlayLooping();
+
+            new System.Media.SoundPlayer(System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Assets_Audio", "BG.wav")).PlayLooping();
+
 
             // --- TITLE CARD ---
             Renderer.ShowAsciiCard(
@@ -466,6 +475,7 @@ namespace Group13_DesignWeek
             world.Rooms.Add(room3);
 
             world.CorrectShapeForPlate = ShapeId.Two;
+            
             return world;
         }
     }
